@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Auth;
 
 class PetugasController extends Controller
 {
@@ -77,5 +78,77 @@ class PetugasController extends Controller
         }
 
         return response()->json(compact('user'));
+    }
+    public function update($id,Request $request){
+        if(Auth::user()->level=="admin"){
+        $validator=Validator::make($request->all(),
+            [
+                'nama_petugas' => 'required|string|max:255',            
+                'username' => 'required|string|max:255',
+                'password' => 'required|string|min:6|confirmed',
+                'level' => 'required',
+                'telp' => 'required|string|max:255',
+            ]
+        );
+
+        if($validator->fails()){
+        return Response()->json($validator->errors());
+        }
+
+        $ubah=tabel_petugas::where('id',$id)->update([
+            'nama_petugas' => $request->get('nama_petugas'),
+            'username' => $request->get('username'),
+            'password' => Hash::make($request->get('password')),
+            'level' => $request->get('level'),
+            'telp' => $request->get('telp'),
+        ]);
+        $status=1;
+        $message="Data Petugas Berhasil Diubah";
+        if($ubah){
+        return Response()->json(compact('status','message'));
+        }else {
+        return Response()->json(['status'=>0]);
+        }
+        }
+    else {
+    return response()->json(['status'=>'anda bukan admin']);
+    }
+}
+    public function destroy($id){
+        if(Auth::user()->level=="admin"){
+        $hapus=tabel_petugas::where('id',$id)->delete();
+        $status=1;
+        $message="Data Penyewa Berhasil Dihapus";
+        if($hapus){
+        return Response()->json(compact('status','message'));
+        }else {
+        return Response()->json(['status'=>0]);
+        }
+    }
+    else {
+        return response()->json(['status'=>'anda bukan admin']);
+        }
+    }
+
+    public function tampil(){
+        if(Auth::user()->level=="admin"){
+            $datas = tabel_petugas::get();
+            $count = $datas->count();
+            $petugas = array();
+            $status = 1;
+            foreach ($datas as $dt_jc){
+                $petugas[] = array(
+                    'id' => $dt_jc->id,
+                    'nama_petugas'=>$dt_jc->nama_petugas,
+                    'username'=>$dt_jc->username,
+                    'password'=>$dt_jc->password,
+                    'telp'=>$dt_jc->telp,
+                    'level'=>$dt_jc->level
+                );
+            }   
+            return Response()->json(compact('count','petugas'));
+        } else {
+            return Response()->json(['status'=> 'Tidak bisa, anda bukan admin']);
+        }
     }
 }
